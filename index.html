@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="tl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hymns Key Change</title><link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Hymns">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Georgia,serif;background:#fff;color:#000}
+header{background:#000;color:#fff;padding:14px;padding-top:calc(14px + env(safe-area-inset-top));font-size:20px}#app{max-width:820px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}header{text-align:center}
+nav{display:flex;position:sticky;top:0;background:#000;z-index:2}
+nav button{flex:1;margin:0}nav button.on{background:#fff;color:#000}
+input,textarea{width:100%;padding:10px;font-size:16px;border:2px solid #000;background:#fff;color:#000;margin-bottom:8px;font-family:inherit}
+textarea{height:50vh;font-family:monospace}
+button{background:#000;color:#fff;border:2px solid #000;padding:8px 12px;font-size:16px;margin:3px}
+button.o{background:#fff;color:#000}
+.item{padding:10px 14px;border-bottom:1px solid #000;display:flex;align-items:center}
+.item small{display:block}.bar{padding:8px;border-bottom:2px solid #000}
+.song{padding:14px}.r{margin:0 0 6px}.g{height:18px}
+.s{display:inline-flex;flex-direction:column;vertical-align:top;white-space:pre-wrap;font-size:17px;line-height:1.35}
+.s i{font:bold 15px monospace;padding-right:5px;min-height:1.2em}
+#m{display:none;position:fixed;bottom:16px;left:16px;right:16px;background:#000;color:#fff;padding:12px;z-index:9}
+</style></head><body>
+<header>Hymns Key Change</header><div id="app"></div><div id="m"></div>
+<script src="songs.js"></script><script>
+const N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],FL={Db:'C#',Eb:'D#',Gb:'F#',Ab:'G#',Bb:'A#'};
+const idx=n=>N.indexOf(FL[n]||n),tr=(c,s)=>c.replace(/[A-G][#b]?/g,m=>N[(idx(m)+s+120)%12]);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=i=>document.getElementById(i),A=$('app');
+const msg=t=>{const m=$('m');m.textContent=t;m.style.display='block';setTimeout(()=>m.style.display='none',2500)};
+let D;try{D=JSON.parse(localStorage.getItem('hymns_v1'))}catch(e){}
+D=D||{songs:[],seen:[],page:[],next:1};
+SONGS.forEach(s=>{const k=s.t+'|'+s.a,e=D.songs.find(x=>x.t==s.t&&x.a==s.a);
+if(e){if(!e.ed&&(e.rev||0)<(s.rev||0)){e.l=s.l;e.k=s.k;e.rev=s.rev}return}
+if(!D.seen.includes(k)){D.seen.push(k);D.songs.push({n:D.next++,t:s.t,a:s.a,k:s.k,l:s.l,rev:s.rev})}});
+const save=()=>{try{localStorage.setItem('hymns_v1',JSON.stringify(D))}catch(e){}};save();
+let tab='list',q='',v=null,keys={};const get=n=>D.songs.find(s=>s.n==n);
+const seg=(c,t)=>`<span class="s"><i>${c?esc(c):'&nbsp;'}</i><span>${t?esc(t):'&nbsp;'}</span></span>`;
+const row=(ln,s)=>{if(!ln.trim())return'<div class="g"></div>';const p=ln.split(/(\[[^\]]+\])/);let o=p[0]?seg('',p[0]):'';
+for(let k=1;k<p.length;k+=2)o+=seg(tr(p[k].slice(1,-1),s),p[k+1]);return'<div class="r">'+o+'</div>'};
+const body=(o,s)=>o.l.split('\n').map(x=>row(x,s)).join('');
+const nav=()=>`<nav><button class="${tab=='list'?'on':''}" onclick="tab='list';v=null;go()">Hymns</button><button class="${tab=='page'?'on':''}" onclick="tab='page';v=null;go()">Page (${D.page.length}/5)</button></nav>`;
+function go(){v!=null?view(v):tab=='page'?page():list()}
+function list(){const r=D.songs.filter(s=>(s.t+s.a).toLowerCase().includes(q.toLowerCase())),on=n=>D.page.includes(n);
+A.innerHTML=nav()+`<div class="bar"><input id="q" placeholder="Hanapin ang hymn..." value="${esc(q)}"><button onclick="edit(0)">+ New song</button></div>`+
+r.map(s=>`<div class="item"><div onclick="view(${s.n})" style="flex:1">${esc(s.t)}<small>${esc(s.a)} • Key ${esc(s.k)}</small></div><button class="${on(s.n)?'o':''}" onclick="tog(${s.n})">${on(s.n)?'✓':'+'}</button></div>`).join('');
+const e=$('q');e.oninput=()=>{q=e.value;const p=e.selectionStart;list();const n=$('q');n.focus();n.setSelectionRange(p,p)}}
+function tog(n){const i=D.page.indexOf(n);if(i>=0)D.page.splice(i,1);else if(D.page.length>=5){msg('Hanggang 5 kanta lang sa page. Mag-alis muna ng isa.');return}else D.page.push(n);save();go()}
+function view(n){v=n;const o=get(n),s=keys[n]||0,p=D.page.includes(n);
+A.innerHTML=nav()+`<div class="bar"><button onclick="v=null;go()">←</button><button onclick="sh(${n},-1)">−</button>Key ${esc(tr(o.k,s))}<button onclick="sh(${n},1)">+</button><br><button class="o" onclick="tog(${n})">${p?'Remove from page':'Add to page'}</button><button class="o" onclick="edit(${n})">Edit</button><button class="o" onclick="ask(${n})">Delete</button></div><h2 style="padding:0 14px">${esc(o.t)}</h2><div class="song">${body(o,s)}</div>`}
+const sh=(n,d)=>{keys[n]=(keys[n]||0)+d;view(n)},pk=(n,d)=>{keys[n]=(keys[n]||0)+d;page()};
+function page(){A.innerHTML=nav()+(D.page.length?D.page.map(n=>{const o=get(n),s=keys[n]||0;return`<div class="bar" style="border-top:4px solid #000"><b>${esc(o.t)}</b> • Key ${esc(tr(o.k,s))}<br><button onclick="pk(${n},-1)">−</button><button onclick="pk(${n},1)">+</button><button class="o" onclick="tog(${n})">Remove</button></div><div class="song">${body(o,s)}</div>`}).join(''):'<p style="padding:14px">Wala pang kanta. Pindutin ang + sa listahan ng hymns.</p>')}
+function edit(n){const o=n?get(n):{t:'',a:'',k:'C',l:''};
+A.innerHTML=nav()+`<div class="song"><input id="et" placeholder="Pamagat" value="${esc(o.t)}"><input id="ea" placeholder="Artist / Author" value="${esc(o.a)}"><input id="ek" placeholder="Key (hal. G)" value="${esc(o.k)}"><textarea id="el" placeholder="Lyrics na may chords sa [ ], hal. [G]Amazing [C]grace">${esc(o.l)}</textarea><button onclick="sv(${n})">Save</button><button class="o" onclick="${n?`view(${n})`:'go()'}">Cancel</button></div>`}
+function sv(n){const t=$('et').value.trim(),a=$('ea').value.trim(),k=$('ek').value.trim()||'C',l=$('el').value;
+if(!t)return msg('Lagyan ng pamagat.');if(!/^[A-G][#b]?m?$/.test(k))return msg('Hindi valid ang key (hal. G, F#, Am).');
+if(D.songs.some(s=>s.n!=n&&s.t.toLowerCase()==t.toLowerCase()&&s.a.toLowerCase()==a.toLowerCase()))return msg('Meron na ang kantang ito.');
+const o=n?get(n):{n:D.next++};Object.assign(o,{t,a,k,l,ed:1});if(!n)D.songs.push(o);save();view(o.n)}
+function ask(n){A.innerHTML=nav()+`<div class="song"><p>Tuluyang buburahin ang <b>${esc(get(n).t)}</b> at hindi na ito maibabalik. Sigurado ka ba?</p><button onclick="dd(${n})">Yes, delete</button><button class="o" onclick="view(${n})">No</button></div>`}
+function dd(n){D.songs=D.songs.filter(s=>s.n!=n);D.page=D.page.filter(x=>x!=n);save();v=null;tab='list';list()}
+list();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
